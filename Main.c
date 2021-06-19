@@ -1,22 +1,17 @@
+//Interfaz 5
 #include <stdio.h>
 #include <stdlib.h>
-#include "C:\\Users\\JP\\Desktop\\escuela\\NPCAP\\npcap-sdk-1.06\\Include\\pcap.h"
 #include <pcap.h>
 #define LINE_LEN 16
-#define RUTA "C:\\Users\\JP\\Desktop\\escuela\\Redes\\Proyecto\\paquetes3.pcap"
 #define 	PCAP_OPENFLAG_PROMISCUOUS   1
 #define 	PCAP_SRC_FILE   2
 #define 	PCAP_BUF_SIZE   1024
-//interfaz 3
+#include "D:\\ESCOM6TO\\REDES\\Descargalib\\Include\\pcap\\pcap.h"
+#define RUTA "D:\\ESCOM6TO\\REDES\\Programas\\paquetes3.pcap"
 #ifdef _MSC_VER
-/*
- * we do not want the warnings about the old deprecated and unsecure CRT functions
- * since these examples can be compiled under *nix as well
- */
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-//Version de prueba 1
 void dispatcher_handler(u_char *, const struct pcap_pkthdr *, const u_char *);
 void tipoI(unsigned char, unsigned char, int);
 void tipoS(unsigned char, unsigned char, int);
@@ -53,34 +48,38 @@ typedef struct ip_header{
 int main(int argc, char **argv)
 {
 	
-	int opcion = 0;
-    while(opcion != 4){
-        printf("Interfaz de inicio para el analizador de tramas\n");
-        printf("1)Analizador IEEE\n2)ARP\n3)IP\n4)Salir\n");
-        scanf("%d", &opcion);
-
-        switch (opcion)
-        {
-        case 1:
-            ieee();
-            break;
-
-        case 2:
-            arp();
-            break;
-
-        case 3:
-            ip();
-            break;
-
-        case 4:
-            exit(0);
-            break;
-
-        default:
-            puts("Opcion no valida");
-            break;
-        }
+	int opcion = 0,tipocaptura=0,ntramas=0;
+	while(tipocaptura != 3){
+		printf("Interfaz de inicio para el analizador de tramas\n");
+		printf("1)Archivo\n2)Vuelo\n3)Salir\n");
+		scanf("%d", &tipocaptura);
+		switch(tipocaptura){
+			case 1:
+				ieee();
+	            break;
+	        case 2:
+	        	system("cls");
+	        	printf("Selecciones el tipo de protocolo:\n");
+		        printf("   1)ARP\n   2)IP\n");
+		        scanf("%d", &opcion);
+		
+		        switch (opcion)
+		        {
+		
+		        case 1:
+		            arp();
+		            break;
+		        case 2:
+		            ip();
+		            break;
+	
+		        default:
+		            puts("Opcion no valida");
+		            break;
+		        }
+			
+		}
+	
         puts("\n");
     }
 
@@ -96,10 +95,8 @@ void ieee(){
 	char source[PCAP_BUF_SIZE];
 
    /* if(argc != 2){
-
         printf("usage: %s filename", argv[0]);
         return -1;
-
     }*/
 
     /* Create the source string according to the new WinPcap syntax */
@@ -258,6 +255,7 @@ void arp(){
 	int i=0;
 	pcap_t *adhandle;
 	char errbuf[PCAP_ERRBUF_SIZE];
+	pcap_dumper_t *dumpfile;
 	
 	/* Retrieve the device list */
 	if(pcap_findalldevs(&alldevs, errbuf) == -1)
@@ -312,16 +310,22 @@ void arp(){
 		return -1;
 	}
 	
+	 dumpfile = pcap_dump_open(adhandle, "paquetes.pcap");
+
+    if(dumpfile==NULL)
+    {
+        fprintf(stderr,"\nError opening output file\n");
+        return -1;
+    }
 	printf("\nlistening on %s...\n", d->description);
 	
 	/* At this point, we don't need any more the device list. Free it */
 	pcap_freealldevs(alldevs);
 	
 	/* start the capture */
-	pcap_loop(adhandle, 1000, packet_handler, NULL);
-	
+	pcap_loop(adhandle,150, packet_handler, (unsigned char *)dumpfile);
 	pcap_close(adhandle);
-    return;
+    return 0;
 }
 
 /* Callback function invoked by libpcap for every incoming packet */
@@ -479,7 +483,8 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *header, const u_cha
 		}
 		printf("%d",pkt_data[38+ad]);
 		puts("\n------------------------------------------------\n\n");
-
+		//Guarda paquetes capturados
+		pcap_dump(param, header, pkt_data);
 	}
     
 }
@@ -493,6 +498,7 @@ void ip(){
 	int i=0;
 	pcap_t *adhandle;
 	char errbuf[PCAP_ERRBUF_SIZE];
+	pcap_dumper_t *dumpfile;
 	
 	/* Retrieve the device list */
 	if(pcap_findalldevs(&alldevs, errbuf) == -1)
@@ -547,16 +553,23 @@ void ip(){
 		return -1;
 	}
 	
+	 dumpfile = pcap_dump_open(adhandle, "paquetes.pcap");
+
+    if(dumpfile==NULL)
+    {
+        fprintf(stderr,"\nError opening output file\n");
+        return -1;
+    }
 	printf("\nlistening on %s...\n", d->description);
 	
 	/* At this point, we don't need any more the device list. Free it */
 	pcap_freealldevs(alldevs);
 	
 	/* start the capture */
-	pcap_loop(adhandle, 50, packet_handlera, NULL);
+	pcap_loop(adhandle, 15, packet_handlera, (unsigned char *)dumpfile);
 	
 	pcap_close(adhandle);
-    return;
+	return ;
 }
 
 /* Callback function invoked by libpcap for every incoming packet */
@@ -729,6 +742,9 @@ void packet_handlera(u_char *param, const struct pcap_pkthdr *header, const u_ch
 		printf("Destination Address: %d.%d.%d.%d\n", ih->daddr.byte1, ih->daddr.byte2, ih->daddr.byte3, ih->daddr.byte4);
 		
 		puts("\n\n*------------------------------------*\n\n");
+		//Guarda paquetes capturados
+		pcap_dump(param, header, pkt_data);
+		
 	}
     
 }
