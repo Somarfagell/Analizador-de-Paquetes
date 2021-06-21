@@ -6,19 +6,25 @@
 #define 	PCAP_OPENFLAG_PROMISCUOUS   1
 #define 	PCAP_SRC_FILE   2
 #define 	PCAP_BUF_SIZE   1024
-#include "D:\\ESCOM6TO\\REDES\\Descargalib\\Include\\pcap\\pcap.h"
-#define RUTA "D:\\ESCOM6TO\\REDES\\Programas\\paquetes3.pcap"
+#include "C:\\Users\\Alan\\Documents\\ESCOM\\5to\\redes\\P1\\C\\npcap-sdk-1.06\\Include\\pcap\\pcap.h"
+#define RUTA "C:\\Users\\Alan\\Documents\\ESCOM\\5to\\redes\\P2\\C\\paquetes3.pcap"
+#define RUTA1 "C:\\Users\\Alan\\Documents\\ESCOM\\5to\\redes\\P2\\C\\paquetes3.pcap"
+#define RUTA2 "C:\\Users\\Alan\\Documents\\ESCOM\\5to\\redes\\Analizador-de-Paquetes\\ipD.pcap"
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
 void dispatcher_handler(u_char *, const struct pcap_pkthdr *, const u_char *);
+void dispatcher_handlera(u_char *, const struct pcap_pkthdr *, const u_char *);
+void dispatcher_handlerb(u_char *, const struct pcap_pkthdr *, const u_char *);
 void tipoI(unsigned char, unsigned char, int);
 void tipoS(unsigned char, unsigned char, int);
 void tipoU(unsigned char);
 void printfBin(unsigned char);
 void arp();
+void arpA();
 void ip();
+void ipA();
 void ieee();
 void packet_handler(u_char *param, const struct pcap_pkthdr *header, const u_char *pkt_data);
 void packet_handlera(u_char *param, const struct pcap_pkthdr *header, const u_char *pkt_data);
@@ -82,49 +88,62 @@ typedef struct udp_header{
 }udp_header;
 
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv){
+	int opcionv = 0, opciona=0, tipocaptura=0, ntramas=0;
 	
-	int opcion = 0,tipocaptura=0,ntramas=0;
 	while(tipocaptura != 3){
 		printf("Interfaz de inicio para el analizador de tramas\n");
 		printf("1)Archivo\n2)Vuelo\n3)Salir\n");
 		scanf("%d", &tipocaptura);
+		
 		switch(tipocaptura){
 			case 1:
-				ieee();
-	            break;
+				system("cls");
+	        	printf("Seleccione el tipo de protocolo:\n");
+		        printf("   1)IEEE\n   2)ARP\n   3)IP\n   Otro) volver al menu inicial\n");
+		        scanf("%d", &opciona);
+		
+		        switch (opciona){
+			        case 1:
+			            ieee();
+			            break;
+			        case 2:
+			            arpA();
+			            break;
+			        case 3:
+						ipA();
+						break;    
+			        default:
+			            puts("Opcion no valida");
+			            break;
+			    }
+        		break;
 	        case 2:
 	        	system("cls");
-	        	printf("Selecciones el tipo de protocolo:\n");
+	        	printf("Seleccione el tipo de protocolo:\n");
 		        printf("   1)ARP\n   2)IP\n");
-		        scanf("%d", &opcion);
+		        scanf("%d", &opcionv);
 		
-		        switch (opcion)
-		        {
+		        switch (opcionv){
+			        case 1:
+			            arp();
+			            break;
+			        case 2:
+			            ip();
+			            break;
 		
-		        case 1:
-		            arp();
-		            break;
-		        case 2:
-		            ip();
-		            break;
-	
-		        default:
-		            puts("Opcion no valida");
-		            break;
-		        }
-			
+			        default:
+			            puts("Opcion no valida");
+			            break;
+			        }
+        		break;
 		}
-	
         puts("\n");
     }
-
     return 0;
 }
 
-
-//Seccion de analizador ieee
+//Analizador IEEE con archivo
 void ieee(){
     
     pcap_t *fp;
@@ -169,6 +188,7 @@ void ieee(){
     return;
 }
 
+/*Dispatcher handler para IEEE*/
 void dispatcher_handler(u_char *temp1, const struct pcap_pkthdr *header, const u_char *pkt_data)
 {
     u_int i=0;
@@ -282,8 +302,175 @@ void dispatcher_handler(u_char *temp1, const struct pcap_pkthdr *header, const u
     
     return;
 }
+//Analizador ARP con archivo
+void arpA(){
+	pcap_t *fp;
+	char errbuf[PCAP_ERRBUF_SIZE];
+	char source[PCAP_BUF_SIZE];
 
-//inicio de arp
+    /* Create the source string according to the new WinPcap syntax */
+    if ( pcap_createsrcstr( source,         // variable that will keep the source string
+                            PCAP_SRC_FILE,  // we want to open a file
+                            NULL,           // remote host
+                            NULL,           // port on the remote host
+                            RUTA1, //argv[1],        // name of the file we want to open
+                            errbuf          // error buffer
+                            ) != 0)
+    {
+        fprintf(stderr,"\nError creating a source string\n");
+        return -1;
+    }
+    
+    /* Open the capture file */
+    if ( (fp= (pcap_t *)pcap_open(source,         // name of the device
+                        65536,          // portion of the packet to capture
+                                        // 65536 guarantees that the whole packet will be captured on all the link layers
+                         PCAP_OPENFLAG_PROMISCUOUS,     // promiscuous mode
+                         1000,              // read timeout
+                         NULL,              // authentication on the remote machine
+                         errbuf         // error buffer
+                         ) ) == NULL)
+    {
+        fprintf(stderr,"\nUnable to open the file %s\n", source);
+        return -1;
+    }
+
+    // read and dispatch packets until EOF is reached
+    pcap_loop(fp, 0, dispatcher_handlera, NULL);
+
+    return 0;
+}
+
+/*Dispatcher handler para ARP*/
+void dispatcher_handlera(u_char *temp1, const struct pcap_pkthdr *header, const u_char *pkt_data){
+    u_int i=0;
+    
+    (VOID)temp1;
+
+	printf("\nTrama\n");
+    /* print pkt timestamp and pkt len */
+    //printf("%ld:%ld (%ld)\n", header->ts.tv_sec, header->ts.tv_usec, header->len);          
+    
+    /*Lenght 
+	printf("Lenght:");
+	printf("\t %ld\n", header->len); */
+	
+    /* Print the packet */
+    for (i=1; (i < header->caplen + 1 ) ; i++)
+    {
+        printf("%.2x ", pkt_data[i-1]);
+        if ( (i % LINE_LEN) == 0) printf("\n");        
+    }
+    
+	printf("\n=================== Analisis ARP =================\n");
+	int j=0;
+	
+    //type
+	unsigned short tipo = (pkt_data[12]*256)+pkt_data[13];
+    if(tipo = 254)
+    	printf("Tipo: %d   %02X %02X (trama ARP) \n",tipo,pkt_data[12],pkt_data[13]);
+    
+    //Hw type 
+	printf("\nHardware Type:");
+	unsigned short hw_type = (pkt_data[14]*256)+pkt_data[15];
+	switch(hw_type){
+		case 1: 
+			printf("\tEthernet\t");
+			break;
+		case 6: 
+			printf("\tIEEE 802 Networks\t");
+			break;
+		case 7: 
+			printf("\tARCNET\t");
+			break;
+		case 15: 
+			printf("\tFrame Relay\t");
+			break;
+		case 16: 
+			printf("\tAsynchronous Transfer Mode (ATM)\t");
+			break;
+		case 17: 
+			printf("\tHDLC\t");
+			break;
+		case 18: 
+			printf("\tFibre Channel \t");
+			break;
+		case 19: 
+			printf("\tAsynchronous Transfer Mode (ATM)\t");
+			break;
+		case 20: 
+			printf("\tSerial line\t");
+			break;
+		default:
+			printf("\tUndefined\t");
+			break;
+	}
+	printf("%02X %02X \n\n",pkt_data[14],pkt_data[15]);
+	
+	//Protocol type
+	printf("\Protocol Type:\t");
+	unsigned short p_type = (pkt_data[16]*256)+pkt_data[17];
+		printf("%d\t", p_type);
+		printf("%02X %02X \n\n",pkt_data[16],pkt_data[17]);
+		
+	//Hw address size
+	printf("\Hardware address size:\t");
+	printf("%02X \t\n\n",pkt_data[18]);
+	//printf("%d \t", pkt_data[18]*256);
+	
+	//Protocol address lenght
+	printf("\Protocol address lenght:\t");
+	printf("%02X \n\n",pkt_data[19]);
+	
+	
+	//op code
+	printf("Op code:");
+	unsigned short op_code = (pkt_data[20]*256)+pkt_data[21];
+	switch(op_code){
+		case 1: 
+			printf("\tARP request\t");
+			break;
+		case 2: 
+			printf("\tARP reply\t");
+			break;
+		case 3: 
+			printf("\tRARP request\t");
+			break;
+		case 4: 
+			printf("\tRARP reply\t");
+			break;
+		default:
+			break;
+	}
+	printf("%02X %02X \n\n",pkt_data[20], pkt_data[21]);
+	
+	//Sender hardware address
+	printf("Sender hardware address:\t");
+	for(j=22; j<28; j++)
+		printf("%.2x ",pkt_data[j]);
+		
+	//Sender protocol address
+	printf("\n\nSender protocol address:\t");
+	for(j=28; j<32; j++)
+		printf("%.2x ",pkt_data[j]);
+	printf("\t%ld.%ld.%ld.%ld\n",(pkt_data[28]*256/256), (pkt_data[29]*256/256),(pkt_data[30]*256/256),(pkt_data[31]*256/256));				
+		
+	//Target hardware address
+	printf("\n\nTarget hardware address:\t");
+	for(j=32; j<38; j++)
+		printf("%.2x ",pkt_data[j]);
+		
+	//Target protocol address
+	printf("\n\nTarget protocol address:\t");
+	for(j=38; j<42; j++)
+		printf("%.2x ",pkt_data[j]);
+	printf("\t%ld.%ld.%ld.%ld\n\n",(pkt_data[38]*256/256), (pkt_data[39]*256/256),(pkt_data[40]*256/256),(pkt_data[41]*256/256));
+	
+    printf("\n\n");     
+    
+}
+
+//Analizador ARP al vuelo
 void arp(){
 
     pcap_if_t *alldevs;
@@ -526,8 +713,7 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *header, const u_cha
     
 }
 
-
-//seccion de ip
+//Analizador IP al vuelo
 void ip(){
     pcap_if_t *alldevs;
 	pcap_if_t *d;
@@ -612,11 +798,12 @@ void ip(){
 /* Callback function invoked by libpcap for every incoming packet */
 void packet_handlera(u_char *param, const struct pcap_pkthdr *header, const u_char *pkt_data)
 {
+	int i = 0;
 	unsigned short tipo = (pkt_data[12]*256)+pkt_data[13];
 	if (tipo==2048){
 		//Impresion del paquete
 		printf("\tPaquete:\n\n");
-		for (int i=1; (i < header->caplen + 1 ) ; i++)
+		for (i=1; (i < header->caplen + 1 ) ; i++)
     		{
     			printf("%.2x ", pkt_data[i-1]);
         		if ( (i % LINE_LEN) == 0) printf("\n");
@@ -937,6 +1124,214 @@ void packet_handlera(u_char *param, const struct pcap_pkthdr *header, const u_ch
 		//Obtencion de las opciones
 		
 		printf("\n\n");
+	}
+}
+
+//Analizador IP con archivo
+void ipA(){
+	pcap_t *fp;
+	char errbuf[PCAP_ERRBUF_SIZE];
+	char source[PCAP_BUF_SIZE];
+
+    /* Create the source string according to the new WinPcap syntax */
+    if ( pcap_createsrcstr( source,         // variable that will keep the source string
+                            PCAP_SRC_FILE,  // we want to open a file
+                            NULL,           // remote host
+                            NULL,           // port on the remote host
+                            RUTA2, //argv[1],        // name of the file we want to open
+                            errbuf          // error buffer
+                            ) != 0)
+    {
+        fprintf(stderr,"\nError creating a source string\n");
+        return -1;
+    }
+    
+    /* Open the capture file */
+    if ( (fp= (pcap_t *)pcap_open(source,         // name of the device
+                        65536,          // portion of the packet to capture
+                                        // 65536 guarantees that the whole packet will be captured on all the link layers
+                         PCAP_OPENFLAG_PROMISCUOUS,     // promiscuous mode
+                         1000,              // read timeout
+                         NULL,              // authentication on the remote machine
+                         errbuf         // error buffer
+                         ) ) == NULL)
+    {
+        fprintf(stderr,"\nUnable to open the file %s\n", source);
+        return -1;
+    }
+
+    // read and dispatch packets until EOF is reached
+    pcap_loop(fp, 0, dispatcher_handlerb, NULL);
+
+    return 0;
+}
+
+/*Dispatcher handler para IP*/
+void dispatcher_handlerb(u_char *temp1, const struct pcap_pkthdr *header, const u_char *pkt_data){
+	struct tm *ltime;
+	char timestr[16];
+	time_t local_tv_sec;
+
+	/*
+	 * unused parameters
+	 */
+	(VOID)(temp1);
+	(VOID)(pkt_data);
+
+	/* convert the timestamp to readable format */
+	local_tv_sec = header->ts.tv_sec;
+	//ltime=localtime(&local_tv_sec);
+	//strftime( timestr, sizeof timestr, "%H:%M:%S", ltime);
+	
+	//printf("%s,%.6d len:%d\n", timestr, header->ts.tv_usec, header->len);
+	
+	unsigned short tipo = (pkt_data[12]*256)+pkt_data[13];
+	if (tipo==2048){
+		puts("*------------------------------------*");
+		printf("Paquete IP..\n");
+		ip_header *ih;
+		u_int ip_len;
+		/* retireve the position of the ip header */
+		ih = (ip_header *) (pkt_data + 14); //length of ethernet header
+		
+		//Version
+		printf("Version: %.2x  ",(ih->ver_ihl)&0xf0>>3);
+		if(((ih->ver_ihl)&0xf0>>3) == 4)
+			puts("IP Version 4");
+		else 
+			puts("IP Version 6");
+		
+		//IHL
+		printf("IHL: %.2d \n",(ih->ver_ihl)&0x0f);
+		printf("Tam: %d\n", ((ih->ver_ihl)&0x0f)*4);
+		//Tipo de servicio
+		//printf("DEBUG: %.2x \n",(ih->tos));
+		printf("Tipo de servicio: %d  ",((ih->tos)>>5)&0x07);
+		switch (((ih->tos)>>5)&0x07)
+		{
+		case 0:
+			puts("Routine");
+			break;
+		case 1:
+			puts("Priority");
+			break;
+		case 2:
+			puts("Immediate");
+			break;
+		case 3:
+			puts("Flash");
+			break;
+		case 4:
+			puts("Flash Overdrive");
+			break;
+		case 5:
+			puts("CRITIC/ECP");
+			break;
+		case 6:
+			puts("Internetwork Control");
+			break;	
+		case 7:
+			puts("Network Control");
+			break;					
+		default:
+			puts("");
+			break;
+		}
+
+		//ENC
+		printf("ENC: %d  ",(ih->tos)&0x03);
+		switch ((ih->tos)&0x03)
+		{
+		case 0:
+			puts("Sin capacidad ECN");
+			break;
+		case 1:
+			puts("Capacidad de transporte ENC(0)");
+			break;
+		case 2:
+			puts("Capacidad de transporte ENC(1)");
+			break;
+		case 3:
+			puts("Congestion encontrada");
+			break;
+					
+		default:
+			puts("");
+			break;
+		}
+		
+		//Banderas
+		printf("Banderas: %d  ", (ih->flags_fo>>13)&0x07);
+		switch ((ih->flags_fo>>13)&0x07)
+		{
+		case 0:
+			puts("Fragmentacion permitida, Ultimo fragmento del paquete");
+			break;
+		case 1:
+			puts("Fragmentacion permitida, a espera de mas fragmentos");
+			break;
+		case 2:
+			puts("Paquete sin fragmentacion");
+			break;
+		default:
+			break;
+		}
+		
+		//Fragment offset
+		printf("Offset de fragmento: %d\n", (ih->flags_fo)&0x1FFF);
+		
+		//ttl
+		printf("TTL: %d\n", ih->ttl);
+		
+		//Protocolo
+		printf("Protocolo: %d   ->   ", ih->proto);
+		switch (ih->proto){
+			case 0:
+				puts("RESERVADO");
+				break;
+			case 1:
+				puts("ICMP");
+				break;
+			case 2:
+				puts("IGMP");
+				break;
+			case 3:
+				puts("GGP");
+				break;
+			case 4:
+				puts("IP");
+				break;
+			case 5:
+				puts("ST");
+				break;
+			case 6:
+				puts("TCP");
+				break;
+			case 7:
+				puts("UCL");
+				break;
+			case 8:
+				puts("EGP");
+				break;
+			case 17:
+				puts("UDP");
+				break;
+			default:
+				break;
+		}
+		
+		//checksum
+		printf("Cheksum: %d\n", ih->crc);
+		
+		//options
+		printf("Opciones: %.2x %.2x %.2x", ih->op_pad&0xFF000000>>24, ih->op_pad&0xFF0000>>26, ih->op_pad&0xFF00>>8, ih->op_pad&0xFF);
+		
+		puts("\n");
+		/* print ip addresses and udp ports */
+		printf("Source Address: %d.%d.%d.%d\n", ih->saddr.byte1, ih->saddr.byte2, ih->saddr.byte3, ih->saddr.byte4);
+		printf("Destination Address: %d.%d.%d.%d\n", ih->daddr.byte1, ih->daddr.byte2, ih->daddr.byte3, ih->daddr.byte4);
+		
+		puts("\n\n*------------------------------------*\n\n");
 	}
 }
 
