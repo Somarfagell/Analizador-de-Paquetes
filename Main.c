@@ -1,19 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "C:\\Users\\JP\\Desktop\\escuela\\NPCAP\\npcap-sdk-1.06\\Include\\pcap.h"
 #include <pcap.h>
 #define LINE_LEN 16
+#define RUTA "C:\\Users\\JP\\Desktop\\escuela\\Redes\\Proyecto\\paquetes3.pcap"
+#define RUTA1 "C:\\Users\\JP\\Desktop\\escuela\\Redes\\ProA\\ipD.pcap"
+#define RUTA2 "C:\\Users\\JP\\Desktop\\escuela\\Redes\\ProA\\ipC.pcap"
+#define RUTA3 "C:\\Users\\JP\\Desktop\\escuela\\Redes\\ProA\\ipA.pcap"
+#define RUTA4 "C:\\Users\\JP\\Desktop\\escuela\\Redes\\ProA\\ipB.pcap"
 #define 	PCAP_OPENFLAG_PROMISCUOUS   1
 #define 	PCAP_SRC_FILE   2
 #define 	PCAP_BUF_SIZE   1024
-#include "D:\\ESCOM6TO\\REDES\\Descargalib\\Include\\pcap.h"
-#define RUTA "D:\\ESCOM6TO\\REDES\\Programas\\paquetes3.pcap"
-#define RUTA1 "D:\\ESCOM6TO\\REDES\\Programas\\ipA.pcap"
-#define RUTA2 "D:\\ESCOM6TO\\REDES\\Programas\\ipB.pcap"
-#define RUTA3 "D:\\ESCOM6TO\\REDES\\Programas\\ipC.pcap"
+//interfaz 3
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_WARNINGS
 #endif
-int nto=0,narp=0,nic=0,nig=0,ntc=0,nud=0;
+
 void dispatcher_handlerARP(u_char *, const struct pcap_pkthdr *, const u_char *);
 void dispatcher_handlerIP(u_char *, const struct pcap_pkthdr *, const u_char *);
 void dispatcher_handlerIEEE(u_char *, const struct pcap_pkthdr *, const u_char *);
@@ -26,6 +28,8 @@ int arpA();
 int ip();
 int	ipA();
 int ieee();
+void menuFiltros();
+void encabezado(u_char *, const struct pcap_pkthdr *, const u_char *);
 
 typedef struct ip_address{
 	u_char byte1;
@@ -85,18 +89,24 @@ typedef struct udp_header{
 	u_short crc; // Checksum
 }udp_header;
 
+int filtro = 0,bIGMP=0,bICMP=0,bTCP=0,bUDP=0,tramas = 0, tramasRequeridas = 0; //Banderas y filtro
+int nto=0,narp=0,nic=0,nig=0,ntc=0,nud=0;
+
 
 int main(int argc, char **argv){
 	int opcionv = 0, opciona=0, tipocaptura=0, ntramas=0;
 	
 	while(tipocaptura != 3){
-		printf("Interfaz de inicio para el analizador de tramas\n");
-		printf("1)Archivo\n2)Vuelo\n3)Salir\n");
+    system("cls");
+		printf("******* Analizador de tramas *******\n\n");
+    printf("Bienvenido, seleccione una opcion:\n");
+		printf("1)Archivo\n2)Vuelo\n3)Salir\n\n");
 		scanf("%d", &tipocaptura);
 		
 		switch(tipocaptura){
 			case 1:
 				system("cls");
+            puts("****----------------****");
 	        	printf("Seleccione el tipo de protocolo:\n");
 		        printf("   1)IEEE\n   2)ARP\n   3)IP\n   Otro) volver al menu inicial\n");
 		        scanf("%d", &opciona);
@@ -352,7 +362,7 @@ void dispatcher_handlerARP(u_char *temp1, const struct pcap_pkthdr *header, cons
     
 	printf("\n=================== Analisis ARP =================\n");
 	int j=0;
-	nto=nto+1;
+		nto=nto+1;
     //type
 	unsigned short tipo = (pkt_data[12]*256)+pkt_data[13];
     if(tipo = 254)
@@ -453,7 +463,7 @@ void dispatcher_handlerARP(u_char *temp1, const struct pcap_pkthdr *header, cons
 	for(j=38; j<42; j++)
 		printf("%.2x ",pkt_data[j]);
 	printf("\t%ld.%ld.%ld.%ld\n\n",(pkt_data[38]*256/256), (pkt_data[39]*256/256),(pkt_data[40]*256/256),(pkt_data[41]*256/256));
-	narp=narp+1;
+		narp=narp+1;
     printf("\n\n");     
     
 }
@@ -492,7 +502,7 @@ int arp(){
 		return -1;
 	}
 	
-	printf("Enter the interface number (1-%d):",i);
+	printf("Introduzca el numero de interfaz que desee capturar (1-%d):",i);
 	scanf("%d", &inum);
 	
 	if(inum < 1 || inum > i)
@@ -534,12 +544,12 @@ int arp(){
 	/* At this point, we don't need any more the device list. Free it */
 	pcap_freealldevs(alldevs);
 	int tramas = 0;
-	printf("\n\t¿Cuantas tramas quieres capturar?\n");
+	printf("\nCuantas tramas quieres capturar?\n");
 	scanf("%d",&tramas);
 	
 	/* start the capture */
 	pcap_loop(adhandle,tramas, dispatcher_handlerARP, (unsigned char *)dumpfile);
-	printf("------------Estadisticas------------");
+  printf("------------Estadisticas------------");
 	printf("Tramas ARP:%d\n",narp);
 	printf("Tramas ICMP:%d\n",nic);
 	printf("Tramas IGMP:%d\n",nig);
@@ -547,7 +557,7 @@ int arp(){
 	printf("Tramas UDP:%d\n",nud);
 	printf("Tramas total:%d",nto);
 	pcap_close(adhandle);
-    return 0;
+  return 0;
 }
 
 //Analizador IP al vuelo
@@ -583,7 +593,7 @@ int ip(){
 		return -1;
 	}
 	
-	printf("Enter the interface number (1-%d):",i);
+	printf("Introduzca el numero de interfaz que desee capturar (1-%d):",i);
 	scanf("%d", &inum);
 	
 	if(inum < 1 || inum > i)
@@ -624,20 +634,29 @@ int ip(){
 	
 	/* At this point, we don't need any more the device list. Free it */
 	pcap_freealldevs(alldevs);
-	int tramas = 0;
-	printf("\n\t¿Cuantas tramas quieres capturar?\n");
+  int tramas = 0;
+	printf("\nCuantas tramas quieres capturar?\n");
 	scanf("%d",&tramas);
+  menuFiltros();
+  
 	
 	/* start the capture */
 	pcap_loop(adhandle, tramas, dispatcher_handlerIP, (unsigned char *)dumpfile);
-	printf("Tramas ARP:%d\n",narp);
+	bICMP = 0;
+  	bIGMP = 0;
+  	bTCP = 0;
+  	bUDP = 0;
+  printf("Tramas ARP:%d\n",narp);
 	printf("Tramas ICMP:%d\n",nic);
 	printf("Tramas IGMP:%d\n",nig);
 	printf("Tramas TCP:%d\n",ntc);
 	printf("Tramas UDP:%d\n",nud);
-	printf("Tramas total:%d",nto);
+	printf("Tramas total:%d\n",nto);
 	pcap_close(adhandle);
-	return ;
+
+	puts("\n**Pulse cualquier tecla para continuar**\n");
+  getch();
+	return 0;
 }
 
 //Analizador IP con archivo
@@ -645,6 +664,7 @@ int ipA(){
 	pcap_t *fp;
 	char errbuf[PCAP_ERRBUF_SIZE];
 	char source[PCAP_BUF_SIZE];
+
     /* Create the source string according to the new WinPcap syntax */
     if ( pcap_createsrcstr( source,         // variable that will keep the source string
                             PCAP_SRC_FILE,  // we want to open a file
@@ -673,103 +693,38 @@ int ipA(){
     }
 
     // read and dispatch packets until EOF is reached
+    menuFiltros();
     pcap_loop(fp, 0, dispatcher_handlerIP, NULL);
-
+    bICMP = 0;
+    bIGMP = 0;
+    bTCP = 0;
+    bUDP = 0;
+    puts("\n**Pulse cualquier tecla para continuar**\n");
+    getch();
+    
     return 0;
 }
 
 /* Packet Handler IP */
 void dispatcher_handlerIP(u_char *param, const struct pcap_pkthdr *header, const u_char *pkt_data)
 {
+   
 	int i = 0;
 	unsigned short tipo = (pkt_data[12]*256)+pkt_data[13];
+	
 	if (tipo==2048){
-		nto=nto+1;
+      nto=nto+1;
 		//Impresion del paquete
-		printf("\tPaquete:\n\n");
-		for (i=1; (i < header->caplen + 1 ) ; i++)
-    		{
-    			printf("%.2x ", pkt_data[i-1]);
-        		if ( (i % LINE_LEN) == 0) printf("\n");
-    		}
-    	printf("\n\n\tAnalisis del Paquete IP..\n\n");
-    	//Asignacion del inicio del paquete
-		ip_header *ih;
+    ip_header *ih;
 		ih = (ip_header	 *) (pkt_data + 14); //length of ethernet header
 		
-		//Obtencion de la version
-		if((ih->ver_ihl&0xf0)==0x40){
-			printf("Version: IPv4\n");
-		}else if((ih->ver_ihl&0xf0)==0x60){
-			printf("Version: IPv6\n");
-		}
-		
-		//Obtencion del IHL
-		printf("IHL: %.2X\n",ih->ver_ihl&0x0f);
-		
-		//Obtencion de la clase
-		if((ih->tos&0xE0)==0x00){
-			printf("Class: Routine\n");
-		}else if((ih->tos&0xE0)==0x10){
-			printf("Class: Priority\n");
-		}else if((ih->tos&0xE0)==0x20){
-			printf("Class: Immediate\n");
-		}else if((ih->tos&0xE0)==0x30){
-			printf("Class: Flash\n");
-		}else if((ih->tos&0xE0)==0x40){
-			printf("Class: Flash Override\n");
-		}else if((ih->tos&0xE0)==0x50){
-			printf("Class: CRITIC/ECP\n");
-		}else if((ih->tos&0xE0)==0x60){
-			printf("Class: Internetwork Control\n");
-		}else if((ih->tos&0xE0)==0x70){
-			printf("Class: Network Control\n");
-		}
-		
-		//Obtencion del ECN
-		if((ih->tos&0x03)==0x00){
-			printf("ECN: Sin capacidad\n");
-		}else if((ih->tos&0x03)==0x01){
-			printf("ECN: Capacidad de transporte (0)\n");
-		}else if((ih->tos&0x03)==0x02){
-			printf("ECN: Capacidad de transporte (1)\n");
-		}else if((ih->tos&0x03)==0x03){
-			printf("ECN: Congestion encontrada\n");
-		}
-		
-		//Obtencion de la longitud
-		u_short tamano = ((ih->tlen&0xFF)<<8) | (ih->tlen>>8);
-		printf("Tamano: %d (Hex = %.4X)\n",tamano,tamano);
-		
-		//Obtencion de la identificacion
-		u_short id = ((ih->identification&0xFF)<<8) | (ih->identification>>8);
-		printf("ID: %d (Hex = %.4X)\n",id,id);
-		
-		//Obtencion de Banderas
-		u_short bandera = ((ih->flags_fo&0xFF)<<8) | (ih->flags_fo>>8);
-		if((bandera&0xE000)==0x2000){
-			printf("Bandera: --X More activa\n");
-		}else if((bandera&0xE000)==0x4000){
-			printf("Bandera: -X- No fragmentar activa\n");
-		}else{
-			printf("No hay banderas encendidas\n");
-		}
-		
-		//Obtencion del offset
-		printf("Offset: %d\n",bandera&0x1FFF);
-		//Obtencion del TTL
-		printf("TTL: %d (Hex = %.2X)\n",ih->ttl,ih->ttl);
-		
-	    //Obtencion del Checksum
-		u_short check = ((ih->crc&0xFF)<<8) | (ih->crc>>8);
-		printf("Checksum: %.4X\n",check);
 		
 		//Obtencion de Protocolo
 		if(ih->proto==0x00){
 			printf("Protocolo: Reservado\n");
-		}
-		else if(ih->proto==1){
-			nic=nic+1;
+		}else if(ih->proto==1 && bICMP == 1){
+      nic=nic+1;
+      encabezado(param,header,pkt_data);
 			icmp_header *icmp;
 			u_char ihl = ((ih->ver_ihl)&0x0f)*4;
 			icmp = (icmp_header *) (pkt_data + 14+(ihl));
@@ -836,9 +791,12 @@ void dispatcher_handlerIP(u_char *param, const struct pcap_pkthdr *header, const
 				printf("\t- Codigo: 0 (Reply to Timestamp message)\n");
 			}
 			printf("\t- Checksum: %X\n",((icmp->crc&0xFF)<<8) | (icmp->crc>>8));
-		}
-		else if(ih->proto==0x02){
-			nig=nig+1;
+      printf("IP de Origen: %d.%d.%d.%d \n", ih->saddr.byte1, ih->saddr.byte2, ih->saddr.byte3, ih->saddr.byte4);
+		  printf("IP de Destinatario: %d.%d.%d.%d \n",ih->daddr.byte1, ih->daddr.byte2, ih->daddr.byte3, ih->daddr.byte4);
+      printf("\n\n");
+		}else if(ih->proto==0x02 && bIGMP == 1){
+      nig=nig+1;
+      encabezado(param,header,pkt_data);
 			igmp_header *igmp;
 			u_char ihl = ((ih->ver_ihl)&0x0f)*4;
 			igmp = (igmp_header *) (pkt_data + 14+(ihl));
@@ -883,9 +841,18 @@ void dispatcher_handlerIP(u_char *param, const struct pcap_pkthdr *header, const
 			}else if(igmp->type==0x17){
 				printf("\t- Tipo: Leave Group");
 			}
-		}
-		else if(ih->proto==0x06){
-			ntc=ntc+1;
+      printf("IP de Origen: %d.%d.%d.%d \n", ih->saddr.byte1, ih->saddr.byte2, ih->saddr.byte3, ih->saddr.byte4);
+		  printf("IP de Destinatario: %d.%d.%d.%d \n",ih->daddr.byte1, ih->daddr.byte2, ih->daddr.byte3, ih->daddr.byte4);
+      printf("\n\n");
+		}else if(ih->proto==0x03){
+			printf("Protocolo: GGP\n");
+		}else if(ih->proto==0x04){
+			printf("Protocolo: IP\n");
+		}else if(ih->proto==0x05){
+			printf("Protocolo: ST\n");
+		}else if(ih->proto==0x06 && bTCP == 1){
+      ntc=ntc+1;
+      encabezado(param,header,pkt_data);
 			tcp_header *tcp;
 			u_char ihl = ((ih->ver_ihl)&0x0f)*4;
 			tcp = (tcp_header *) (pkt_data + 14 + (ihl));
@@ -925,9 +892,32 @@ void dispatcher_handlerIP(u_char *param, const struct pcap_pkthdr *header, const
 			}
 			printf("\t- Ventana: %.4X\n",window);
 			printf("\t- Checksum: %.4X\n",check);
-		}
-		else if(ih->proto==0x11){
-			nud=nud+1;
+      printf("IP de Origen: %d.%d.%d.%d \n", ih->saddr.byte1, ih->saddr.byte2, ih->saddr.byte3, ih->saddr.byte4);
+		  printf("IP de Destinatario: %d.%d.%d.%d \n",ih->daddr.byte1, ih->daddr.byte2, ih->daddr.byte3, ih->daddr.byte4);
+      printf("\n\n");
+		}else if(ih->proto==0x07){
+			printf("Protocolo: UCL\n");
+		}else if(ih->proto==0x08){
+			printf("Protocolo: EGP\n");
+		}else if(ih->proto==0x09){
+			printf("Protocolo: IGP\n");
+		}else if(ih->proto==0xA){
+			printf("Protocolo: BBN-RCC-MON\n");
+		}else if(ih->proto==0xB){
+			printf("Protocolo: NVP-II\n");
+		}else if(ih->proto==0xC){
+			printf("Protocolo: PUP\n");
+		}else if(ih->proto==0xD){
+			printf("Protocolo: ARGUS\n");
+		}else if(ih->proto==0xE){
+			printf("Protocolo: EMCON\n");
+		}else if(ih->proto==0xF){
+			printf("Protocolo: XNET\n");
+		}else if(ih->proto==0x10){
+			printf("Protocolo: CHAOS\n");
+		}else if(ih->proto==0x11 && bUDP == 1){
+      nud=nud+1;
+      encabezado(param,header,pkt_data);
 			udp_header *udp;
 			u_char ihl = ((ih->ver_ihl)&0x0f)*4;
 			udp = (udp_header *) (pkt_data + 14 + (ihl));
@@ -940,15 +930,140 @@ void dispatcher_handlerIP(u_char *param, const struct pcap_pkthdr *header, const
 			printf("\t- Puerto de Destino: %d (Hex = %.4X)\n",puerto_d,puerto_d);
 			printf("\t- Longitud del UDP: %d (Hex = %.4X)\n",longitud,longitud);
 			printf("\t- Checksum: %.4X\n",crc);
+      printf("IP de Origen: %d.%d.%d.%d \n", ih->saddr.byte1, ih->saddr.byte2, ih->saddr.byte3, ih->saddr.byte4);
+		  printf("IP de Destinatario: %d.%d.%d.%d \n",ih->daddr.byte1, ih->daddr.byte2, ih->daddr.byte3, ih->daddr.byte4);
+      printf("\n\n");
+		}else if(ih->proto==0x12){
+			printf("Protocolo: MUX\n");
+		}else if(ih->proto==0x13){
+			printf("Protocolo: DCN-MEAS\n");
+		}else if(ih->proto==0x14){
+			printf("Protocolo: HMP\n");
+		}else if(ih->proto==0x15){
+			printf("Protocolo: PRM\n");
+		}else if(ih->proto==0x16){
+			printf("Protocolo: XNS-IDP\n");
+		}else if(ih->proto==0x17){
+			printf("Protocolo: TRUNK-1\n");
+		}else if(ih->proto==0x18){
+			printf("Protocolo: TRUNK-2\n");
+		}else if(ih->proto==0x19){
+			printf("Protocolo: LEAF-1\n");
+		}else if(ih->proto==0x1A){
+			printf("Protocolo: LEAF-2\n");
+		}else if(ih->proto==0x1B){
+			printf("Protocolo: RDP\n");
+		}else if(ih->proto==0x1C){
+			printf("Protocolo: IRTP\n");
+		}else if(ih->proto==0x1D){
+			printf("Protocolo: ISO-TP4\n");
+		}else if(ih->proto==0x1E){
+			printf("Protocolo: NETBLT\n");
+		}else if(ih->proto==0x1F){
+			printf("Protocolo: MFE-NSP\n");
+		}else if(ih->proto==0x20){
+			printf("Protocolo: MERIT-INP\n");
+		}else if(ih->proto==0x21){
+			printf("Protocolo: SEP\n");
+		}else if(ih->proto==0x22){
+			printf("Protocolo: 3PC\n");
+		}else if(ih->proto==0x23){
+			printf("Protocolo: IDPR\n");
+		}else if(ih->proto==0x24){
+			printf("Protocolo: XTP\n");
+		}else if(ih->proto==0x25){
+			printf("Protocolo: DDP\n");
 		}
 				
-		//Obtencion de IP's
-		printf("IP de Origen: %d.%d.%d.%d \n", ih->saddr.byte1, ih->saddr.byte2, ih->saddr.byte3, ih->saddr.byte4);
-		printf("IP de Destinatario: %d.%d.%d.%d \n",ih->daddr.byte1, ih->daddr.byte2, ih->daddr.byte3, ih->daddr.byte4);
-				
-		printf("\n\n");
+		
+
+    
 	}
-	
+}
+
+void encabezado(u_char *param, const struct pcap_pkthdr *header, const u_char *pkt_data){
+	int i;
+  ip_header *ih;
+	ih = (ip_header	 *) (pkt_data + 14); //length of ethernet header
+
+  printf("\tPaquete:\n\n");
+		for (i=1; (i < header->caplen + 1 ) ; i++)
+    		{
+    			printf("%.2x ", pkt_data[i-1]);
+        		if ( (i % LINE_LEN) == 0) printf("\n");
+    		}
+    	printf("\n\n\tAnalisis del Paquete IP..\n\n");
+    	//Asignacion del inicio del paquete
+		
+		
+		//Obtencion de la version
+		if((ih->ver_ihl&0xf0)==0x40){
+			printf("Version: IPv4\n");
+		}else if((ih->ver_ihl&0xf0)==0x60){
+			printf("Version: IPv6\n");
+		}
+		
+		//Obtencion del IHL
+		printf("IHL: %.2X\n",ih->ver_ihl&0x0f);
+		
+		//Obtencion de la clase
+		if((ih->tos&0xE0)==0x00){
+			printf("Class: Routine\n");
+		}else if((ih->tos&0xE0)==0x10){
+			printf("Class: Priority\n");
+		}else if((ih->tos&0xE0)==0x20){
+			printf("Class: Immediate\n");
+		}else if((ih->tos&0xE0)==0x30){
+			printf("Class: Flash\n");
+		}else if((ih->tos&0xE0)==0x40){
+			printf("Class: Flash Override\n");
+		}else if((ih->tos&0xE0)==0x50){
+			printf("Class: CRITIC/ECP\n");
+		}else if((ih->tos&0xE0)==0x60){
+			printf("Class: Internetwork Control\n");
+		}else if((ih->tos&0xE0)==0x70){
+			printf("Class: Network Control\n");
+		}
+		
+		//Obtencion del ECN
+		if((ih->tos&0x03)==0x00){
+			printf("ECN: Sin capacidad\n");
+		}else if((ih->tos&0x03)==0x01){
+			printf("ECN: Capacidad de transporte (0)\n");
+		}else if((ih->tos&0x03)==0x02){
+			printf("ECN: Capacidad de transporte (1)\n");
+		}else if((ih->tos&0x03)==0x03){
+			printf("ECN: Congestion encontrada\n");
+		}
+		
+		//Obtencion de la longitud
+		u_short tamano = ((ih->tlen&0xFF)<<8) | (ih->tlen>>8);
+		printf("Tamano: %d (Hex = %.4X)\n",tamano,tamano);
+		
+		//Obtencion de la identificacion
+		u_short id = ((ih->identification&0xFF)<<8) | (ih->identification>>8);
+		printf("ID: %d (Hex = %.4X)\n",id,id);
+		
+		//Obtencion de Banderas
+		u_short bandera = ((ih->flags_fo&0xFF)<<8) | (ih->flags_fo>>8);
+		if((bandera&0xE000)==0x2000){
+			printf("Bandera: --X More activa\n");
+		}else if((bandera&0xE000)==0x4000){
+			printf("Bandera: -X- No fragmentar activa\n");
+		}else{
+			printf("No hay banderas encendidas\n");
+		}
+		
+		//Obtencion del offset
+		printf("Offset: %d\n",bandera&0x1FFF);
+		
+		//Obtencion del TTL
+		printf("TTL: %d (Hex = %.2X)\n",ih->ttl,ih->ttl);
+		
+	    //Obtencion del Checksum
+		u_short check = ((ih->crc&0xFF)<<8) | (ih->crc>>8);
+		printf("Checksum: %.4X\n",check);
+    return;
 }
 
 void tipoI(unsigned char pkt_dataA, unsigned char pkt_dataB, int ext){
@@ -1047,4 +1162,42 @@ void tipoU(unsigned char pkt_dataA){
     puts("");
     aux1= pkt_dataA>>3&0x01;
     printf("P/F: %.1x\n", aux1);
+}
+
+void menuFiltros(){
+  puts("\nDesea aplicar algun filtro?\n");
+  puts("Filtros :\n");
+  puts("1) IGMP\n2) ICMP\n3) TCP\n4) UDP\n5) Incluir todos\n");
+  scanf("%d",&filtro);
+
+  bIGMP = 0;
+  bICMP = 0;
+  bTCP = 0;
+  bUDP = 0;
+    
+  switch(filtro){
+    case 1:{
+      bIGMP = 1;
+      break;
+    }
+    case 2:{
+      bICMP = 1;
+      break;
+    }
+    case 3:{
+      bTCP = 1;
+      break;
+    }
+    case 4:{
+      bUDP = 1;
+      break;
+    }
+    default:
+      bIGMP = 1;
+      bICMP = 1;
+      bTCP = 1;
+      bUDP = 1;
+      break;
+  }
+  return ;
 }
