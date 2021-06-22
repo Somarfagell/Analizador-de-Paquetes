@@ -2,16 +2,18 @@
 #include <stdlib.h>
 #include <pcap.h>
 #define LINE_LEN 16
-#define RUTA "D:\\Documents\\ESCOM\\5tosemestre\\Redes\\Practicas\\Practica 2\\paquetes3.pcap"
-#define RUTA1 "D:\\Documents\\ESCOM\\5tosemestre\\Redes\\Proyecto\\ipD.pcap"
-#define RUTA2 "D:\\Documents\\ESCOM\\5tosemestre\\Redes\\Proyecto\\ipC.pcap"
 #define 	PCAP_OPENFLAG_PROMISCUOUS   1
 #define 	PCAP_SRC_FILE   2
 #define 	PCAP_BUF_SIZE   1024
+#include "D:\\ESCOM6TO\\REDES\\Descargalib\\Include\\pcap.h"
+#define RUTA "D:\\ESCOM6TO\\REDES\\Programas\\paquetes3.pcap"
+#define RUTA1 "D:\\ESCOM6TO\\REDES\\Programas\\ipA.pcap"
+#define RUTA2 "D:\\ESCOM6TO\\REDES\\Programas\\ipB.pcap"
+#define RUTA3 "D:\\ESCOM6TO\\REDES\\Programas\\ipC.pcap"
 #ifdef _MSC_VER
 #define _CRT_SECURE_NO_WARNINGS
 #endif
-
+int nto=0,narp=0,nic=0,nig=0,ntc=0,nud=0;
 void dispatcher_handlerARP(u_char *, const struct pcap_pkthdr *, const u_char *);
 void dispatcher_handlerIP(u_char *, const struct pcap_pkthdr *, const u_char *);
 void dispatcher_handlerIEEE(u_char *, const struct pcap_pkthdr *, const u_char *);
@@ -350,7 +352,7 @@ void dispatcher_handlerARP(u_char *temp1, const struct pcap_pkthdr *header, cons
     
 	printf("\n=================== Analisis ARP =================\n");
 	int j=0;
-	
+	nto=nto+1;
     //type
 	unsigned short tipo = (pkt_data[12]*256)+pkt_data[13];
     if(tipo = 254)
@@ -451,7 +453,7 @@ void dispatcher_handlerARP(u_char *temp1, const struct pcap_pkthdr *header, cons
 	for(j=38; j<42; j++)
 		printf("%.2x ",pkt_data[j]);
 	printf("\t%ld.%ld.%ld.%ld\n\n",(pkt_data[38]*256/256), (pkt_data[39]*256/256),(pkt_data[40]*256/256),(pkt_data[41]*256/256));
-	
+	narp=narp+1;
     printf("\n\n");     
     
 }
@@ -537,6 +539,13 @@ int arp(){
 	
 	/* start the capture */
 	pcap_loop(adhandle,tramas, dispatcher_handlerARP, (unsigned char *)dumpfile);
+	printf("------------Estadisticas------------");
+	printf("Tramas ARP:%d\n",narp);
+	printf("Tramas ICMP:%d\n",nic);
+	printf("Tramas IGMP:%d\n",nig);
+	printf("Tramas TCP:%d\n",ntc);
+	printf("Tramas UDP:%d\n",nud);
+	printf("Tramas total:%d",nto);
 	pcap_close(adhandle);
     return 0;
 }
@@ -621,9 +630,14 @@ int ip(){
 	
 	/* start the capture */
 	pcap_loop(adhandle, tramas, dispatcher_handlerIP, (unsigned char *)dumpfile);
-	
+	printf("Tramas ARP:%d\n",narp);
+	printf("Tramas ICMP:%d\n",nic);
+	printf("Tramas IGMP:%d\n",nig);
+	printf("Tramas TCP:%d\n",ntc);
+	printf("Tramas UDP:%d\n",nud);
+	printf("Tramas total:%d",nto);
 	pcap_close(adhandle);
-	return 0;
+	return ;
 }
 
 //Analizador IP con archivo
@@ -631,7 +645,6 @@ int ipA(){
 	pcap_t *fp;
 	char errbuf[PCAP_ERRBUF_SIZE];
 	char source[PCAP_BUF_SIZE];
-
     /* Create the source string according to the new WinPcap syntax */
     if ( pcap_createsrcstr( source,         // variable that will keep the source string
                             PCAP_SRC_FILE,  // we want to open a file
@@ -671,6 +684,7 @@ void dispatcher_handlerIP(u_char *param, const struct pcap_pkthdr *header, const
 	int i = 0;
 	unsigned short tipo = (pkt_data[12]*256)+pkt_data[13];
 	if (tipo==2048){
+		nto=nto+1;
 		//Impresion del paquete
 		printf("\tPaquete:\n\n");
 		for (i=1; (i < header->caplen + 1 ) ; i++)
@@ -743,7 +757,6 @@ void dispatcher_handlerIP(u_char *param, const struct pcap_pkthdr *header, const
 		
 		//Obtencion del offset
 		printf("Offset: %d\n",bandera&0x1FFF);
-		
 		//Obtencion del TTL
 		printf("TTL: %d (Hex = %.2X)\n",ih->ttl,ih->ttl);
 		
@@ -754,7 +767,9 @@ void dispatcher_handlerIP(u_char *param, const struct pcap_pkthdr *header, const
 		//Obtencion de Protocolo
 		if(ih->proto==0x00){
 			printf("Protocolo: Reservado\n");
-		}else if(ih->proto==1){
+		}
+		else if(ih->proto==1){
+			nic=nic+1;
 			icmp_header *icmp;
 			u_char ihl = ((ih->ver_ihl)&0x0f)*4;
 			icmp = (icmp_header *) (pkt_data + 14+(ihl));
@@ -821,7 +836,9 @@ void dispatcher_handlerIP(u_char *param, const struct pcap_pkthdr *header, const
 				printf("\t- Codigo: 0 (Reply to Timestamp message)\n");
 			}
 			printf("\t- Checksum: %X\n",((icmp->crc&0xFF)<<8) | (icmp->crc>>8));
-		}else if(ih->proto==0x02){
+		}
+		else if(ih->proto==0x02){
+			nig=nig+1;
 			igmp_header *igmp;
 			u_char ihl = ((ih->ver_ihl)&0x0f)*4;
 			igmp = (igmp_header *) (pkt_data + 14+(ihl));
@@ -866,13 +883,9 @@ void dispatcher_handlerIP(u_char *param, const struct pcap_pkthdr *header, const
 			}else if(igmp->type==0x17){
 				printf("\t- Tipo: Leave Group");
 			}
-		}else if(ih->proto==0x03){
-			printf("Protocolo: GGP\n");
-		}else if(ih->proto==0x04){
-			printf("Protocolo: IP\n");
-		}else if(ih->proto==0x05){
-			printf("Protocolo: ST\n");
-		}else if(ih->proto==0x06){
+		}
+		else if(ih->proto==0x06){
+			ntc=ntc+1;
 			tcp_header *tcp;
 			u_char ihl = ((ih->ver_ihl)&0x0f)*4;
 			tcp = (tcp_header *) (pkt_data + 14 + (ihl));
@@ -912,27 +925,9 @@ void dispatcher_handlerIP(u_char *param, const struct pcap_pkthdr *header, const
 			}
 			printf("\t- Ventana: %.4X\n",window);
 			printf("\t- Checksum: %.4X\n",check);
-		}else if(ih->proto==0x07){
-			printf("Protocolo: UCL\n");
-		}else if(ih->proto==0x08){
-			printf("Protocolo: EGP\n");
-		}else if(ih->proto==0x09){
-			printf("Protocolo: IGP\n");
-		}else if(ih->proto==0xA){
-			printf("Protocolo: BBN-RCC-MON\n");
-		}else if(ih->proto==0xB){
-			printf("Protocolo: NVP-II\n");
-		}else if(ih->proto==0xC){
-			printf("Protocolo: PUP\n");
-		}else if(ih->proto==0xD){
-			printf("Protocolo: ARGUS\n");
-		}else if(ih->proto==0xE){
-			printf("Protocolo: EMCON\n");
-		}else if(ih->proto==0xF){
-			printf("Protocolo: XNET\n");
-		}else if(ih->proto==0x10){
-			printf("Protocolo: CHAOS\n");
-		}else if(ih->proto==0x11){
+		}
+		else if(ih->proto==0x11){
+			nud=nud+1;
 			udp_header *udp;
 			u_char ihl = ((ih->ver_ihl)&0x0f)*4;
 			udp = (udp_header *) (pkt_data + 14 + (ihl));
@@ -945,46 +940,6 @@ void dispatcher_handlerIP(u_char *param, const struct pcap_pkthdr *header, const
 			printf("\t- Puerto de Destino: %d (Hex = %.4X)\n",puerto_d,puerto_d);
 			printf("\t- Longitud del UDP: %d (Hex = %.4X)\n",longitud,longitud);
 			printf("\t- Checksum: %.4X\n",crc);
-		}else if(ih->proto==0x12){
-			printf("Protocolo: MUX\n");
-		}else if(ih->proto==0x13){
-			printf("Protocolo: DCN-MEAS\n");
-		}else if(ih->proto==0x14){
-			printf("Protocolo: HMP\n");
-		}else if(ih->proto==0x15){
-			printf("Protocolo: PRM\n");
-		}else if(ih->proto==0x16){
-			printf("Protocolo: XNS-IDP\n");
-		}else if(ih->proto==0x17){
-			printf("Protocolo: TRUNK-1\n");
-		}else if(ih->proto==0x18){
-			printf("Protocolo: TRUNK-2\n");
-		}else if(ih->proto==0x19){
-			printf("Protocolo: LEAF-1\n");
-		}else if(ih->proto==0x1A){
-			printf("Protocolo: LEAF-2\n");
-		}else if(ih->proto==0x1B){
-			printf("Protocolo: RDP\n");
-		}else if(ih->proto==0x1C){
-			printf("Protocolo: IRTP\n");
-		}else if(ih->proto==0x1D){
-			printf("Protocolo: ISO-TP4\n");
-		}else if(ih->proto==0x1E){
-			printf("Protocolo: NETBLT\n");
-		}else if(ih->proto==0x1F){
-			printf("Protocolo: MFE-NSP\n");
-		}else if(ih->proto==0x20){
-			printf("Protocolo: MERIT-INP\n");
-		}else if(ih->proto==0x21){
-			printf("Protocolo: SEP\n");
-		}else if(ih->proto==0x22){
-			printf("Protocolo: 3PC\n");
-		}else if(ih->proto==0x23){
-			printf("Protocolo: IDPR\n");
-		}else if(ih->proto==0x24){
-			printf("Protocolo: XTP\n");
-		}else if(ih->proto==0x25){
-			printf("Protocolo: DDP\n");
 		}
 				
 		//Obtencion de IP's
@@ -993,6 +948,7 @@ void dispatcher_handlerIP(u_char *param, const struct pcap_pkthdr *header, const
 				
 		printf("\n\n");
 	}
+	
 }
 
 void tipoI(unsigned char pkt_dataA, unsigned char pkt_dataB, int ext){
